@@ -2428,34 +2428,38 @@
         }, interval);
       }
 
+      const EVENTS = ['click', 'keydown', 'touchstart', 'scroll'];
+
+      function removeInteractionListeners() {
+        EVENTS.forEach((e) => document.removeEventListener(e, onFirstInteraction));
+      }
+
+      function onFirstInteraction() {
+        removeInteractionListeners();
+        startMusic();
+      }
+
       function startMusic() {
+        if (musicPlaying) return;
         bgAudio
           .play()
           .then(() => {
+            removeInteractionListeners();
             fadeAudio(0, 0.38, 2000);
             musicPlaying = true;
             musicBtn.classList.add('playing');
             musicBtn.title = 'Tắt nhạc nền';
           })
-          .catch(() => {});
+          .catch(() => {
+            // autoplay blocked — listeners will catch first interaction
+          });
       }
 
-      // Try autoplay immediately; if blocked by browser, start on first interaction
+      // Register fallback listeners first, then attempt autoplay
+      EVENTS.forEach((e) =>
+        document.addEventListener(e, onFirstInteraction, { passive: true }),
+      );
       startMusic();
-      if (!musicPlaying) {
-        const onFirstInteraction = () => {
-          startMusic();
-          ['click', 'keydown', 'touchstart', 'scroll'].forEach((e) =>
-            document.removeEventListener(e, onFirstInteraction),
-          );
-        };
-        ['click', 'keydown', 'touchstart', 'scroll'].forEach((e) =>
-          document.addEventListener(e, onFirstInteraction, {
-            once: true,
-            passive: true,
-          }),
-        );
-      }
 
       musicBtn.addEventListener('click', (e) => {
         e.stopPropagation();
